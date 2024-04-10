@@ -13,7 +13,7 @@ driver.get("https://mihir200.github.io/webpage/")  # Update this with the path t
 time.sleep(2)  # Adding a delay to see the result
 
 # Assert some condition to verify the result
-assert "My First website" in driver.title
+assert "Forest" in driver.title
 
 # Take a screenshot
 timestamp = time.strftime("%Y%m%d-%H%M%S")
