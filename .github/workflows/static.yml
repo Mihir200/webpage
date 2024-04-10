@@ -1,40 +1,29 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# Name of the GitHub Actions workflow
+name: Selenium Automation Testing and Deployment
 
+# Triggers for when the workflow should run
 on:
-  # Runs on pushes targeting the default branch
+  # Runs when changes are pushed to the default branch (main)
   push:
     branches: ["main"]
 
-  # Allows you to run this workflow manually from the Actions tab
+  # Allows manual triggering of the workflow from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Sets permissions for the GitHub token used in deployment
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Controls concurrent deployments to avoid conflicts
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: "pages"  # Group for concurrency control
+  cancel-in-progress: false  # Don't cancel ongoing deployments
 
+# Define jobs to be executed
 jobs:
-  # Single deploy job since we're just deploying
-  sonarcloud:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  # Job for running Selenium tests
   test:
     needs: sonarcloud
     runs-on: ubuntu-latest  # Runs on Ubuntu environment
@@ -77,23 +66,51 @@ jobs:
           git config --global user.name "GitHub Actions"
           git add screenshot_*.png
           git commit -m "Add screenshot taken during Selenium test"
-          git push
-  deploy:
-    needs: sonarcloud
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+          git push
+
+  sonarcloud:
+    name: SonarCloud
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # Job for deploying to GitHub Pages
+  deploy:
+    # Depends on completion of the 'test' job
+    needs: test
+
+    # Define the environment for deployment
+    environment:
+      name: github-pages  # Name of the deployment environment
+      url: ${{ steps.deployment.outputs.page_url }}  # URL for deployed GitHub Pages
+
+    # Runs the job on Ubuntu environment
+    runs-on: ubuntu-latest
+
+    # Steps to execute within the deployment job
+    steps:
+      # Step to checkout the repository code
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Step to configure GitHub Pages deployment
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
+      # Step to upload the entire repository as an artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          path: "."  # Uploads the entire repository
+
+      # Step to deploy the repository to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
